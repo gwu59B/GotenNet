@@ -161,7 +161,7 @@ predictions = model_by_alias(data_input)
 For more advanced scenarios, if you only need to load the base `GotenNet` representation module from a local checkpoint (e.g., a checkpoint that only contains representation weights), you can use:
 
 ```python
-from gotennet.models.representation import GotenNet, GotenNetWrapper
+from gotennet import GotenNet, GotenNetWrapper
 
 # Example: Load a GotenNet representation from a local file
 representation_checkpoint_path = "/path/to/your/local_model.ckpt" 
