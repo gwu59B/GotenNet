@@ -89,6 +89,7 @@ class GATA(MessagePassing):
         cutoff: float = 5.0,
         num_heads: int = 8,
         dropout: float = 0.0,
+        linear_dropout: float = 0.0,
         edge_updates: Union[bool, str] = True,
         last_layer: bool = False,
         scale_edge: bool = True,
@@ -207,7 +208,7 @@ class GATA(MessagePassing):
 
         # Implementation of gamma_s function
         self.gamma_s = nn.Sequential(
-            InitDense(n_atom_basis, n_atom_basis, activation=activation),
+            InitDense(n_atom_basis, n_atom_basis, activation=activation, dropout=linear_dropout),
             InitDense(n_atom_basis, multiplier * n_atom_basis, activation=None),
         )
 
@@ -219,7 +220,7 @@ class GATA(MessagePassing):
 
         # Value transformation
         self.gamma_v = nn.Sequential(
-            InitDense(n_atom_basis, n_atom_basis, activation=activation),
+            InitDense(n_atom_basis, n_atom_basis, activation=activation, dropout=linear_dropout),
             InitDense(n_atom_basis, multiplier * n_atom_basis, activation=None),
         )
 
@@ -247,6 +248,7 @@ class GATA(MessagePassing):
                 activation=activation,
                 last_activation=None if self.update_info["mlp"] else self.activation,
                 norm=edge_ln,
+                dropout=linear_dropout
             )
 
             self.W_vq = InitDense(
@@ -677,6 +679,7 @@ class EQFF(nn.Module):
         epsilon: float = 1e-8,
         weight_init: Callable = nn.init.xavier_uniform_,
         bias_init: Callable = nn.init.zeros_,
+        linear_dropout: float = 0.0,
     ):
         """
         Initialize EQFF module.
@@ -701,7 +704,7 @@ class EQFF(nn.Module):
 
         # gamma_m implementation
         self.gamma_m = nn.Sequential(
-            InitDense(context_dim, n_atom_basis, activation=activation),
+            InitDense(context_dim, n_atom_basis, activation=activation, dropout=linear_dropout),
             InitDense(n_atom_basis, out_size * n_atom_basis, activation=None),
         )
 
@@ -780,6 +783,7 @@ class GotenNet(nn.Module):
         steerable_norm: str = "",
         num_heads: int = 8,
         attn_dropout: float = 0.0,
+        linear_dropout: float = 0.0,
         edge_updates: Union[bool, str] = True,
         scale_edge: bool = True,
         lmax: int = 1,
@@ -847,6 +851,7 @@ class GotenNet(nn.Module):
             bias_init=bias_init,
             proj_ln="layer",
             activation=activation,
+            linear_dropout=linear_dropout,
         )
 
         self.edge_init = EdgeInit(n_rbf, self.hidden_dim)
@@ -870,6 +875,7 @@ class GotenNet(nn.Module):
                     epsilon=epsilon,
                     num_heads=num_heads,
                     dropout=attn_dropout,
+                    linear_dropout=linear_dropout,
                     edge_updates=edge_updates,
                     last_layer=(i == self.n_interactions - 1),
                     scale_edge=scale_edge,
@@ -894,6 +900,7 @@ class GotenNet(nn.Module):
                     epsilon=epsilon,
                     weight_init=weight_init,
                     bias_init=bias_init,
+                    linear_dropout=linear_dropout,
                 )
                 for i in range(self.n_interactions)
             ]
