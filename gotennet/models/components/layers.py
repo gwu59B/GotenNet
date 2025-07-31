@@ -480,6 +480,7 @@ class Dense(nn.Linear):
         bias_init=zeros_initializer,
         norm=None,
         gain=None,
+        dropout=0.0,
     ):
         # initialize linear layer y = xW^T + b
         self.weight_init = weight_init
@@ -490,6 +491,7 @@ class Dense(nn.Linear):
         if inspect.isclass(activation):
             self.activation = activation()
         self.activation = activation
+        self.dropout = nn.Dropout(p=dropout)
 
         if norm == 'layer':
             self.norm = nn.LayerNorm(out_features)
@@ -526,6 +528,7 @@ class Dense(nn.Linear):
         # add activation function
         if self.activation:
             y = self.activation(y)
+        y=self.dropout(y)
         return y
 
 
@@ -553,6 +556,7 @@ class MLP(nn.Module):
         weight_init=xavier_uniform_,
         bias_init=zeros_initializer,
         norm='',
+        dropout=0.0,
     ):
         super().__init__()
 
@@ -564,7 +568,7 @@ class MLP(nn.Module):
         DenseMLP = partial(Dense, bias=bias, weight_init=weight_init, bias_init=bias_init)
 
         self.dense_layers = nn.ModuleList([
-                DenseMLP(dims[i], dims[i + 1], activation=activation, norm=norm)
+                DenseMLP(dims[i], dims[i + 1], activation=activation, norm=norm, dropout=dropout)
                 for i in range(n_layers - 2)
             ] + [DenseMLP(dims[-2], dims[-1], activation=last_activation)])
 
@@ -1630,7 +1634,8 @@ class NodeInit(MessagePassing):
         activation=F.silu,
         proj_ln='',
         weight_init=nn.init.xavier_uniform_,
-        bias_init=nn.init.zeros_
+        bias_init=nn.init.zeros_,
+        linear_dropout=0.0,
     ):
         super(NodeInit, self).__init__(aggr="add")
         if type(hidden_channels) == int:
@@ -1640,12 +1645,12 @@ class NodeInit(MessagePassing):
         self.A_nbr = nn.Embedding(max_z, last_channel)
         self.W_ndp = MLP(
             [num_rbf] + [last_channel], activation=None, norm='', weight_init=weight_init,
-            bias_init=bias_init, last_activation=None
+            bias_init=bias_init, last_activation=None, dropout=linear_dropout
         )
 
         self.W_nrd_nru = MLP(
             [2*last_channel] + hidden_channels, activation=activation, norm=proj_ln,
-            weight_init=weight_init, bias_init=bias_init, last_activation=None
+            weight_init=weight_init, bias_init=bias_init, last_activation=None, dropout=linear_dropout
         )
         self.cutoff = CosineCutoff(cutoff)
         self.reset_parameters()
